@@ -107,25 +107,3 @@ INSERT INTO study_plans (user_id, plan_data) VALUES (
         ]
     }'::jsonb
 );
-
--- ============================================================
--- QUERIES DE EJEMPLO
--- ============================================================
-
--- Obtener tareas pendientes de un usuario
--- SELECT * FROM tasks WHERE user_id = 1 AND done = FALSE ORDER BY created_at DESC;
-
--- Obtener el plan más reciente
--- SELECT plan_data FROM study_plans WHERE user_id = 1 ORDER BY created_at DESC LIMIT 1;
-
--- Buscar slots de un día específico dentro del plan (JSONB)
--- SELECT jsonb_path_query(plan_data, '$.days[*] ? (@.name == "Lunes").slots[*]')
--- FROM study_plans WHERE user_id = 1 ORDER BY created_at DESC LIMIT 1;
-
--- Contar horas por materia en el plan activo
--- SELECT slot->>'subject' AS subject, SUM((slot->>'duration')::int) / 60.0 AS hours
--- FROM study_plans,
---      jsonb_array_elements(plan_data->'days') AS day,
---      jsonb_array_elements(day->'slots') AS slot
--- WHERE user_id = 1
--- GROUP BY subject;
