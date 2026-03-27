@@ -1,0 +1,23 @@
+# Entorno y secretos
+.env
+
+# Docker
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build
+dist/
+frontend/dist/
+
+# Logs
+*.log
