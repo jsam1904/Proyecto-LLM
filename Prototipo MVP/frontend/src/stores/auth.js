@@ -22,13 +22,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Acciones ──────────────────────────────────────────────
   async function login(email, password) {
-    // El endpoint de login usa form-data (OAuth2PasswordRequestForm)
-    const formData = new FormData()
-    formData.append('username', email)
-    formData.append('password', password)
+    // FastAPI OAuth2PasswordRequestForm requiere application/x-www-form-urlencoded
+    // URLSearchParams genera ese formato automáticamente con axios
+    const params = new URLSearchParams()
+    params.append('username', email)
+    params.append('password', password)
 
-    const { data } = await api.post('/api/users/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const { data } = await api.post('/api/users/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
 
     token.value = data.access_token
@@ -39,7 +40,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(name, email, password) {
     await api.post('/api/users/register', { name, email, password })
-    // Después de registrar, hacer login automáticamente
     await login(email, password)
   }
 

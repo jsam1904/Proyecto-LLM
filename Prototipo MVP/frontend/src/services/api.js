@@ -1,9 +1,5 @@
 import axios from 'axios'
 
-// Sin baseURL: las peticiones a /api/... se envían a Vite dev server
-// que las proxea a http://backend:8000 (nombre del servicio en Docker).
-// Para desarrollo local sin Docker, cambia target en vite.config.js a
-// http://localhost:8000
 const api = axios.create({
   baseURL: '/',
   headers: { 'Content-Type': 'application/json' },
@@ -18,15 +14,23 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// ── Response interceptor: redirige al login si el token expira ────
+// ── Response interceptor: redirige al login si el token EXPIRA ────
+// ⚠️  NO redirigir si la propia petición de login falla con 401
+//     (credenciales incorrectas). En ese caso dejamos que el
+//     componente maneje el error y muestre el mensaje al usuario.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes('/api/users/login') ||
+                           error.config?.url?.includes('/api/users/register')
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      // Token expirado o inválido en una ruta protegida → forzar logout
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
+
     return Promise.reject(error)
   }
 )

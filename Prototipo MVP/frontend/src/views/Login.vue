@@ -103,15 +103,22 @@ async function submit() {
     } else {
       await authStore.login(form.email, form.password)
     }
-    router.push('/')
+    // replace en lugar de push para no dejar el /login en el historial
+    await router.replace('/')
   } catch (err) {
+    // Mostrar el mensaje de error del backend si existe
     const detail = err.response?.data?.detail
-    errorMsg.value =
-      typeof detail === 'string'
-        ? detail
-        : isRegister.value
+    if (typeof detail === 'string') {
+      errorMsg.value = detail
+    } else if (err.response?.status === 422) {
+      errorMsg.value = 'Datos inválidos. Verifica el formulario.'
+    } else if (!err.response) {
+      errorMsg.value = 'No se pudo conectar con el servidor. Intenta de nuevo.'
+    } else {
+      errorMsg.value = isRegister.value
         ? 'Error al crear la cuenta. Intenta de nuevo.'
         : 'Credenciales incorrectas. Verifica tu correo y contraseña.'
+    }
   } finally {
     loading.value = false
   }

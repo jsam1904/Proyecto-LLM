@@ -12,10 +12,10 @@ import './assets/main.css'
 // ── Rutas ─────────────────────────────────────────────────────────
 const routes = [
   { path: '/login', component: Login, meta: { public: true } },
-  { path: '/',          component: Dashboard   },
-  { path: '/plan',      component: StudyPlan   },
-  { path: '/assistant', component: AIAssistant },
-  { path: '/progress',  component: Progress    },
+  { path: '/',          component: Dashboard,   meta: { public: false } },
+  { path: '/plan',      component: StudyPlan,   meta: { public: false } },
+  { path: '/assistant', component: AIAssistant, meta: { public: false } },
+  { path: '/progress',  component: Progress,    meta: { public: false } },
 ]
 
 const router = createRouter({
@@ -23,16 +23,23 @@ const router = createRouter({
   routes,
 })
 
-// ── Auth guard: redirige al login si no hay token ─────────────────
-router.beforeEach((to) => {
+// ── Auth guard ────────────────────────────────────────────────────
+router.beforeEach((to, from) => {
   const token = localStorage.getItem('token')
-  if (!to.meta.public && !token) {
-    return '/login'
+  const isPublic = to.meta.public === true
+
+  // Ruta protegida sin token → redirigir al login
+  if (!isPublic && !token) {
+    return { path: '/login', replace: true }
   }
-  // Si ya está logueado y va a /login, redirigir al dashboard
+
+  // Ya tiene sesión e intenta ir al login → redirigir al dashboard
   if (to.path === '/login' && token) {
-    return '/'
+    return { path: '/', replace: true }
   }
+
+  // En cualquier otro caso permitir la navegación
+  return true
 })
 
 // ── App ───────────────────────────────────────────────────────────
