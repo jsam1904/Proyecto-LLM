@@ -1,4 +1,9 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings
+
+# Busca el .env en la raíz del proyecto (Prototipo MVP/) en lugar de dentro de backend/
+# Ruta: backend/app/config.py → sube 3 niveles → Prototipo MVP/.env
+_ENV_FILE = Path(__file__).parent.parent.parent / ".env"
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://studyai:studyai_pass@localhost:5432/studyai_db"
@@ -9,6 +14,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
     class Config:
-        env_file = ".env"
+        env_file = str(_ENV_FILE)
+        env_file_encoding = "utf-8"
 
 settings = Settings()
