@@ -6,8 +6,16 @@
     </header>
 
     <div class="chat-layout">
+      <!-- Panel de chat principal -->
       <div class="chat-panel">
         <div class="messages" ref="messagesEl">
+          <!-- Mensaje de bienvenida si no hay historial -->
+          <div v-if="messages.length === 0 && !loadingHistory" class="welcome-msg">
+            <div class="welcome-icon">🤖</div>
+            <p>¡Hola, {{ authStore.userName }}! Soy tu asistente académico.<br/>
+            Puedo ayudarte con dudas, técnicas de estudio y planificar tu semana.</p>
+          </div>
+
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -19,10 +27,12 @@
               </svg>
             </div>
             <div class="msg-bubble">
-              <p>{{ msg.content }}</p>
-              <span class="msg-time">{{ msg.time }}</span>
+              <p style="white-space: pre-wrap;">{{ msg.content }}</p>
+              <span class="msg-time">{{ formatTime(msg.created_at) }}</span>
             </div>
           </div>
+
+          <!-- Typing indicator -->
           <div v-if="isTyping" class="message assistant">
             <div class="msg-avatar">
               <svg viewBox="0 0 16 16" fill="white" width="12" height="12">
@@ -42,6 +52,7 @@
               :key="p"
               class="quick-btn"
               @click="sendQuick(p)"
+              :disabled="isTyping"
             >{{ p }}</button>
           </div>
           <div class="input-row">
@@ -57,34 +68,49 @@
               </svg>
             </button>
           </div>
-          <p class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
+          <div class="input-footer">
+            <p class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
+            <button class="clear-btn" @click="clearHistory" :disabled="messages.length === 0">
+              Limpiar historial
+            </button>
+          </div>
         </div>
       </div>
 
+      <!-- Panel de contexto -->
       <aside class="context-panel">
         <h3>Contexto activo</h3>
-        <div class="context-item">
+
+        <div class="context-item" v-if="nextExam">
           <span class="ctx-label">Examen próximo</span>
-          <span class="ctx-val">Cálculo II — Lunes</span>
+          <span class="ctx-val">{{ nextExam.subject }} — {{ nextExam.days_remaining }} días</span>
         </div>
-        <div class="context-item">
-          <span class="ctx-label">Horas disponibles hoy</span>
-          <span class="ctx-val">3h</span>
+        <div class="context-item" v-else>
+          <span class="ctx-label">Examen próximo</span>
+          <span class="ctx-val">Sin exámenes</span>
         </div>
+
         <div class="context-item">
-          <span class="ctx-label">Tema débil detectado</span>
-          <span class="ctx-val">Integrales definidas</span>
+          <span class="ctx-label">Mensajes en historial</span>
+          <span class="ctx-val">{{ messages.length }} mensajes</span>
         </div>
 
         <h3 style="margin-top: 1.25rem;">Acciones rápidas</h3>
         <button class="action-btn" @click="sendQuick('Genera mi plan de estudio para esta semana')">
           Generar plan semanal ↗
         </button>
-        <button class="action-btn" @click="sendQuick('Dame ejercicios de práctica de integrales definidas')">
-          Ejercicios de práctica ↗
+        <button class="action-btn" @click="sendQuick('Dame técnicas de estudio efectivas para exámenes')">
+          Técnicas de estudio ↗
         </button>
-        <button class="action-btn" @click="sendQuick('Explícame el Teorema Fundamental del Cálculo')">
-          Explicar un tema ↗
+        <button
+          v-if="nextExam"
+          class="action-btn"
+          @click="sendQuick(`Necesito un plan de repaso para el examen de ${nextExam.subject} en ${nextExam.days_remaining} días`)"
+        >
+          Plan de repaso ↗
+        </button>
+        <button v-else class="action-btn" @click="sendQuick('Explícame cómo mejorar mi concentración al estudiar')">
+          Mejorar concentración ↗
         </button>
       </aside>
     </div>
@@ -92,56 +118,96 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
+import api from '../services/api.js'
+import { useAuthStore } from '../stores/auth.js'
 
-const messagesEl = ref(null)
-const inputText = ref('')
-const isTyping = ref(false)
-
-const messages = ref([
-  {
-    id: 1,
-    role: 'assistant',
-    content: 'Hola María. Veo que tienes examen de Cálculo II en 3 días. ¿Quieres que te genere un plan de repaso intensivo o prefieres repasar algún tema específico?',
-    time: '9:00 AM'
-  }
-])
+const authStore = useAuthStore()
+const messagesEl    = ref(null)
+const inputText     = ref('')
+const isTyping      = ref(false)
+const loadingHistory = ref(true)
+const messages      = ref([])
+const nextExam      = ref(null)
 
 const quickPrompts = [
   'Genera un plan de repaso',
-  'Ejercicios de integrales',
   'Técnicas de estudio',
+  'Explícame un tema',
 ]
 
-const cannedResponses = [
-  'Entendido. Para integrales definidas, sugiero este orden: (1) Teorema fundamental — 30 min, (2) Técnicas de integración — 45 min, (3) Ejercicios de práctica — 45 min. ¿Empezamos?',
-  'Perfecto. Recuerda usar la técnica de Pomodoro: 25 min de estudio, 5 min de descanso. Para Cálculo, resolver al menos 5 ejercicios diferentes es clave.',
-  'He actualizado tu plan de estudio con este bloque. También recomiendo revisar los ejercicios del capítulo 7 que corresponden exactamente al tipo de preguntas del examen.',
-  'Buena pregunta. El Teorema Fundamental del Cálculo conecta la derivada con la integral. En términos simples: si F es la antiderivada de f, entonces ∫(a,b) f(x)dx = F(b) - F(a).',
-]
-let cannedIdx = 0
-
-function timeNow() {
-  return new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })
+// ── Helpers ───────────────────────────────────────────────────────
+function formatTime(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleTimeString('es-GT', {
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
+async function scrollToBottom() {
+  await nextTick()
+  if (messagesEl.value) {
+    messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+  }
+}
+
+// ── Cargar historial ──────────────────────────────────────────────
+async function fetchHistory() {
+  loadingHistory.value = true
+  try {
+    const [histRes, examRes] = await Promise.all([
+      api.get(`/api/chat/history/${authStore.userId}`),
+      api.get(`/api/exams/${authStore.userId}/next`),
+    ])
+    messages.value = histRes.data
+    nextExam.value  = examRes.data
+    await scrollToBottom()
+  } catch (err) {
+    console.error('Error cargando historial:', err)
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// ── Enviar mensaje ────────────────────────────────────────────────
 async function send() {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
   inputText.value = ''
-  messages.value.push({ id: Date.now(), role: 'user', content: text, time: timeNow() })
+
+  // Agregar mensaje del usuario localmente (sin esperar confirmación)
+  messages.value.push({
+    id: Date.now(),
+    role: 'user',
+    content: text,
+    created_at: new Date().toISOString(),
+  })
   await scrollToBottom()
   isTyping.value = true
-  await new Promise(r => setTimeout(r, 1400))
-  isTyping.value = false
-  messages.value.push({
-    id: Date.now() + 1,
-    role: 'assistant',
-    content: cannedResponses[cannedIdx % cannedResponses.length],
-    time: timeNow()
-  })
-  cannedIdx++
-  await scrollToBottom()
+
+  try {
+    const { data } = await api.post('/api/chat/message', {
+      user_id: authStore.userId,
+      message: text,
+    })
+    messages.value.push({
+      id: data.message_id,
+      role: 'assistant',
+      content: data.reply,
+      created_at: new Date().toISOString(),
+    })
+  } catch (err) {
+    messages.value.push({
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: '⚠️ Error al conectar con el asistente. Verifica tu conexión e intenta de nuevo.',
+      created_at: new Date().toISOString(),
+    })
+    console.error('Error en chat:', err)
+  } finally {
+    isTyping.value = false
+    await scrollToBottom()
+  }
 }
 
 async function sendQuick(text) {
@@ -149,10 +215,17 @@ async function sendQuick(text) {
   await send()
 }
 
-async function scrollToBottom() {
-  await nextTick()
-  if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+// ── Limpiar historial ─────────────────────────────────────────────
+async function clearHistory() {
+  try {
+    await api.delete(`/api/chat/history/${authStore.userId}`)
+    messages.value = []
+  } catch (err) {
+    console.error('Error limpiando historial:', err)
+  }
 }
+
+onMounted(fetchHistory)
 </script>
 
 <style scoped>
@@ -162,6 +235,7 @@ async function scrollToBottom() {
   flex-direction: column;
   gap: 1.25rem;
   height: 100vh;
+  box-sizing: border-box;
 }
 
 .view-header h1 { font-size: 22px; font-weight: 600; }
@@ -193,24 +267,26 @@ async function scrollToBottom() {
   gap: 12px;
 }
 
-.message {
+.welcome-msg {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
-  align-items: flex-end;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
 }
+.welcome-icon { font-size: 2.5rem; }
 
-.message.user {
-  flex-direction: row-reverse;
-}
+.message { display: flex; gap: 10px; align-items: flex-end; }
+.message.user { flex-direction: row-reverse; }
 
 .msg-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 50%;
   background: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 
@@ -220,15 +296,14 @@ async function scrollToBottom() {
   border-radius: 14px;
   font-size: 13px;
   line-height: 1.55;
-  position: relative;
 }
+.msg-bubble p { margin: 0; }
 
 .message.assistant .msg-bubble {
   background: var(--bg-hover);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
-
 .message.user .msg-bubble {
   background: var(--accent);
   color: white;
@@ -243,20 +318,14 @@ async function scrollToBottom() {
 }
 
 .typing-indicator {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 12px 16px;
+  display: flex; gap: 4px; align-items: center; padding: 12px 16px;
 }
-
 .typing-indicator span {
-  width: 6px;
-  height: 6px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--text-tertiary);
   animation: bounce 1.2s infinite;
 }
-
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
@@ -271,114 +340,94 @@ async function scrollToBottom() {
 }
 
 .quick-prompts {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+  display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
 }
-
 .quick-btn {
-  font-size: 11px;
-  padding: 4px 10px;
+  font-size: 11px; padding: 4px 10px;
   border-radius: 20px;
   border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s;
+  background: transparent; color: var(--text-secondary);
+  cursor: pointer; transition: background 0.15s;
+  font-family: 'DM Sans', sans-serif;
 }
+.quick-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.quick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.quick-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-
-.input-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-}
-
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
 .input-row textarea {
   flex: 1;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
   padding: 9px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
-  background: var(--bg-page);
-  color: var(--text-primary);
-  resize: none;
-  outline: none;
+  background: var(--bg-page); color: var(--text-primary);
+  resize: none; outline: none;
   transition: border-color 0.15s;
 }
-
 .input-row textarea:focus { border-color: var(--accent); }
 
 .send-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: white;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.15s;
 }
-
 .send-btn:hover { background: var(--accent-dark); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.input-hint {
-  font-size: 10px;
-  color: var(--text-tertiary);
+.input-footer {
+  display: flex; align-items: center; justify-content: space-between;
   margin-top: 5px;
 }
+.input-hint { font-size: 10px; color: var(--text-tertiary); margin: 0; }
+.clear-btn {
+  font-size: 11px; color: var(--text-tertiary);
+  background: none; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.15s;
+}
+.clear-btn:hover:not(:disabled) { color: #b91c1c; }
+.clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Context panel */
 .context-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto;
 }
 
 .context-panel h3 {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: uppercase; letter-spacing: 0.05em;
   margin-bottom: 4px;
 }
 
 .context-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: flex; flex-direction: column; gap: 2px;
   padding: 8px 10px;
   background: var(--bg-hover);
   border-radius: var(--radius-sm);
 }
-
 .ctx-label { font-size: 11px; color: var(--text-secondary); }
-.ctx-val { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.ctx-val   { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 
 .action-btn {
-  width: 100%;
-  text-align: left;
-  font-size: 12px;
-  padding: 8px 10px;
+  width: 100%; text-align: left;
+  font-size: 12px; padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
+  background: transparent; color: var(--text-secondary);
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
   transition: background 0.15s, color 0.15s;
 }
-
-.action-btn:hover { background: var(--accent-light); color: var(--accent-dark); border-color: rgba(29,158,117,0.3); }
+.action-btn:hover {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border-color: rgba(29,158,117,0.3);
+}
 </style>

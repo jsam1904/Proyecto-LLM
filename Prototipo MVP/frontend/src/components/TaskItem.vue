@@ -1,20 +1,35 @@
 <template>
   <div :class="['task-item', { done: task.done }]">
-    <button class="checkbox" @click="$emit('toggle', task.id)" :aria-label="task.done ? 'Marcar incompleto' : 'Marcar completo'">
+    <button
+      class="checkbox"
+      @click="$emit('toggle', task.id)"
+      :aria-label="task.done ? 'Marcar incompleto' : 'Marcar completo'"
+    >
       <svg v-if="task.done" viewBox="0 0 12 10" fill="none" width="10" height="10">
         <path d="M1 5l3 4L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <span class="task-text">{{ task.text }}</span>
-    <span :class="['task-tag', tagClass]">{{ task.tag }}</span>
+
+    <div class="task-info">
+      <span class="task-text">{{ task.text }}</span>
+      <span v-if="task.subject" class="task-subject">{{ task.subject }}</span>
+    </div>
+
+    <span v-if="task.tag" :class="['task-tag', tagClass]">{{ task.tag }}</span>
+
+    <button class="delete-btn" @click.stop="$emit('delete', task.id)" title="Eliminar">
+      <svg viewBox="0 0 12 12" fill="currentColor" width="10" height="10">
+        <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 const props = defineProps({ task: Object })
-defineEmits(['toggle'])
-const tagMap = { 'Cálculo': 'tag-math', 'Prog': 'tag-prog', 'BD': 'tag-db', 'IA': 'tag-ia' }
+defineEmits(['toggle', 'delete'])
+const tagMap   = { 'Cálculo': 'tag-math', 'Prog': 'tag-prog', 'BD': 'tag-db', 'IA': 'tag-ia' }
 const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
 </script>
 
@@ -29,7 +44,7 @@ const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
   transition: background 0.12s;
 }
 .task-item:hover { background: var(--bg-hover); }
-.task-item.done { opacity: 0.5; }
+.task-item.done { opacity: 0.55; }
 
 .checkbox {
   width: 16px;
@@ -47,13 +62,28 @@ const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
 }
 .task-item.done .checkbox { background: var(--accent); border-color: var(--accent); }
 
-.task-text {
+.task-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.task-text {
   font-size: 12.5px;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .task-item.done .task-text {
   text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.task-subject {
+  font-size: 10px;
   color: var(--text-tertiary);
 }
 
@@ -63,6 +93,21 @@ const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
   border-radius: 10px;
   flex-shrink: 0;
 }
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.task-item:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { background: #fee2e2; color: #b91c1c; }
 
 .tag-math { background: var(--tag-math-bg); color: var(--tag-math-tx); }
 .tag-prog { background: var(--tag-prog-bg); color: var(--tag-prog-tx); }

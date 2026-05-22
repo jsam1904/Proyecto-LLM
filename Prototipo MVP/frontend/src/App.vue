@@ -1,5 +1,11 @@
 <template>
-  <div class="app-shell">
+  <!-- Login no muestra el sidebar -->
+  <div v-if="isLoginPage" class="login-layout">
+    <router-view />
+  </div>
+
+  <!-- App principal con sidebar -->
+  <div v-else class="app-shell">
     <aside class="sidebar">
       <div class="logo">
         <div class="logo-icon">
@@ -27,12 +33,17 @@
 
       <div class="sidebar-footer">
         <div class="user-info">
-          <div class="avatar">MG</div>
-          <div>
-            <p class="user-name">María González</p>
+          <div class="avatar">{{ authStore.userInitials }}</div>
+          <div class="user-text">
+            <p class="user-name">{{ authStore.userName }}</p>
             <p class="user-role">Estudiante</p>
           </div>
         </div>
+        <button class="logout-btn" @click="logout" title="Cerrar sesión">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6"/>
+          </svg>
+        </button>
       </div>
     </aside>
 
@@ -47,13 +58,32 @@
 </template>
 
 <script setup>
-import IconGrid from './components/icons/IconGrid.vue'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from './stores/auth.js'
+import IconGrid     from './components/icons/IconGrid.vue'
 import IconCalendar from './components/icons/IconCalendar.vue'
-import IconChat from './components/icons/IconChat.vue'
-import IconChart from './components/icons/IconChart.vue'
+import IconChat     from './components/icons/IconChat.vue'
+import IconChart    from './components/icons/IconChart.vue'
+
+const route     = useRoute()
+const router    = useRouter()
+const authStore = useAuthStore()
+
+const isLoginPage = computed(() => route.path === '/login')
+
+function logout() {
+  authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
+.login-layout {
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
 .app-shell {
   display: flex;
   height: 100vh;
@@ -125,13 +155,20 @@ import IconChart from './components/icons/IconChart.vue'
 .sidebar-footer {
   border-top: 1px solid var(--border);
   padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
+
+.user-text { min-width: 0; }
 
 .avatar {
   width: 32px;
@@ -152,12 +189,33 @@ import IconChart from './components/icons/IconChart.vue'
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-role {
   font-size: 11px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.logout-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .main-content {
@@ -170,7 +228,6 @@ import IconChart from './components/icons/IconChart.vue'
 .fade-leave-active {
   transition: opacity 0.18s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;

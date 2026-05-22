@@ -14,9 +14,10 @@ class User(Base):
     hashed_pw  = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    tasks    = relationship("Task",      back_populates="user", cascade="all, delete-orphan")
-    plans    = relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
+    tasks    = relationship("Task",        back_populates="user", cascade="all, delete-orphan")
+    plans    = relationship("StudyPlan",   back_populates="user", cascade="all, delete-orphan")
     messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    exams    = relationship("Exam",        back_populates="user", cascade="all, delete-orphan")
 
 
 class Task(Base):
@@ -71,3 +72,17 @@ class ChatMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="messages")
+
+
+class Exam(Base):
+    """Examen o evaluación próxima del estudiante."""
+    __tablename__ = "exams"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subject    = Column(String(100), nullable=False)
+    exam_date  = Column(DateTime(timezone=True), nullable=False)
+    notes      = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="exams")
