@@ -23,10 +23,12 @@ Máximo 3 párrafos por respuesta para mantener la conversación ágil.
 
 FORMATO:
 - Usa Markdown para estructurar tus respuestas (negritas, listas, bloques de código).
-- Para expresiones matemáticas SIEMPRE usa notación LaTeX:
-  - Inline: $expresión$ (ej: $x^2 + y^2 = r^2$)
-  - Bloque centrado: $$expresión$$ (ej: $$\\int_0^1 \\frac{1}{\\sqrt{x}}\\,dx = 2$$)
-- Nunca uses Unicode matemático (∫, √, ∑, etc.) fuera de LaTeX."""
+- Para expresiones matemáticas SIEMPRE usa notación LaTeX con estas reglas ESTRICTAS:
+  - Referencias cortas dentro de texto: $variable$ (ej: Sea $f(x)$ una función)
+  - TODA ecuación, fórmula, integral, fracción o serie: en bloque propio $$...$$ (ej: $$\\frac{1}{1-x} = \\sum_{n=0}^{\\infty} x^n$$)
+  - NUNCA repitas la misma fórmula en inline y display. Elige UNO según contexto.
+  - NUNCA uses \\( ... \\) ni \\[ ... \\]. SOLO $ y $$.
+- Nunca uses Unicode matemático (∫, √, ∑, ∞, etc.) fuera de delimitadores LaTeX."""
 
 
 class ChatRequest(BaseModel):

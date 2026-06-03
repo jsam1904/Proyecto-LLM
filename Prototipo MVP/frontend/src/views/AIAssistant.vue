@@ -130,10 +130,21 @@ import api from '../services/api.js'
 import { useAuthStore } from '../stores/auth.js'
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
-md.use(markdownItKatex)
+md.use(markdownItKatex, { throwOnError: false, errorColor: '#cc0000' })
+
+function preprocessMath(text) {
+  // \(...\) → $...$  (inline LaTeX que el AI usa pero el plugin no parsea)
+  text = text.replace(/\\\((.+?)\\\)/gs, '$$$1$$')
+  // \[...\] → $$...$$
+  text = text.replace(/\\\[(.+?)\\\]/gs, '$$$$$1$$$$')
+  // Eliminar duplicado: $fórmula$ inmediatamente seguida de $$fórmula$$ en línea siguiente
+  // El AI genera ambas versiones; conservamos solo el bloque display ($$)
+  text = text.replace(/\$([^$\n]+)\$[ \t]*\n[ \t]*\$\$([^$]+?)\$\$/g, (_m, _inline, display) => `$$${display}$$`)
+  return text
+}
 
 function renderMarkdown(text) {
-  return md.render(text || '')
+  return md.render(preprocessMath(text || ''))
 }
 
 const authStore = useAuthStore()
@@ -334,8 +345,9 @@ onMounted(fetchHistory)
   margin: 6px 0;
 }
 .msg-md pre code { background: none; padding: 0; font-size: 12px; }
-.msg-md .katex-display { margin: 8px 0; overflow-x: auto; }
+.msg-md .katex-display { margin: 10px 0; overflow-x: auto; text-align: center; }
 .msg-md .katex { font-size: 1.05em; }
+.msg-md .katex-display > .katex { font-size: 1.15em; }
 
 .message.assistant .msg-bubble {
   background: var(--bg-hover);
