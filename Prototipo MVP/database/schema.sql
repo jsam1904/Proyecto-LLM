@@ -1,5 +1,5 @@
 -- ============================================================
--- StudyAI — Schema inicial
+-- StudyPilot AI — Schema inicial
 -- Las tablas también se crean automáticamente via SQLAlchemy
 -- en app/main.py (Base.metadata.create_all). Este archivo
 -- sirve como documentación y para inicializar un contenedor

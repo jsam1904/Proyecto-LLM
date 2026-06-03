@@ -1,4 +1,4 @@
-# StudyAI
+# StudyPilot AI
 
 Asistente de estudio inteligente con planificación impulsada por IA. Permite a los estudiantes gestionar tareas, generar planes de estudio personalizados y consultar un asistente conversacional basado en OpenAI.
 

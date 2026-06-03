@@ -1,5 +1,5 @@
 -- ============================================================
--- StudyAI — Datos de prueba (seed)
+-- StudyPilot AI — Datos de prueba (seed)
 -- Ejecutar DESPUÉS de schema.sql
 --
 -- Usuario demo:

@@ -8,7 +8,7 @@
             <path d="M8 2L10 7H15L11 10L13 15L8 12L3 15L5 10L1 7H6Z"/>
           </svg>
         </div>
-        <span class="brand-name">StudyAI</span>
+        <span class="brand-name">StudyPilot AI</span>
       </div>
 
       <h1>{{ isRegister ? 'Crear cuenta' : 'Bienvenido de vuelta' }}</h1>
