@@ -20,7 +20,8 @@
         </template>
         <template v-else>
           <button v-if="plan" class="edit-btn" @click="enterEdit">Editar</button>
-          <button class="regen-btn" @click="showForm = true">
+          <button v-if="plan" class="ai-modify-btn" @click="showPromptModal = true">Modificar con IA ✦</button>
+          <button class="regen-btn" @click="openGenerateForm">
             {{ plan ? 'Regenerar ↗' : 'Generar plan ↗' }}
           </button>
         </template>
@@ -106,6 +107,38 @@
 
     <!-- Error al guardar -->
     <p v-if="saveError" class="error-msg-bar">{{ saveError }}</p>
+
+    <!-- Modal: Modificar plan con IA -->
+    <Teleport to="body">
+      <div v-if="showPromptModal" class="modal-backdrop" @click.self="showPromptModal = false">
+        <div class="form-panel" style="max-width: 480px;">
+          <div class="form-header">
+            <h3>Modificar plan con IA ✦</h3>
+            <button class="close-btn" @click="showPromptModal = false">✕</button>
+          </div>
+          <div class="form-body">
+            <div class="field">
+              <label>Describe el cambio que quieres hacer</label>
+              <textarea
+                v-model="promptText"
+                class="prompt-textarea"
+                placeholder="Ej: Agrega una sesión de repaso el viernes por la tarde. Mueve Física al jueves. Reduce las horas de Cálculo del lunes."
+                rows="4"
+              ></textarea>
+            </div>
+            <button
+              class="generate-btn"
+              @click="modifyWithAI"
+              :disabled="modifying || !promptText.trim()"
+            >
+              <span v-if="modifying" class="spinner"></span>
+              <span v-else>✦ Aplicar cambio</span>
+            </button>
+            <p v-if="modifyError" class="error-msg">{{ modifyError }}</p>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Panel lateral: Formulario para generar plan -->
     <Teleport to="body">
@@ -209,10 +242,14 @@ const editMode       = ref(false)
 const editingPlan    = ref(null)
 const saving         = ref(false)
 const saveError      = ref('')
-const showForm       = ref(false)
-const generating     = ref(false)
-const generateError  = ref('')
-const subjectInput   = ref('')
+const showForm        = ref(false)
+const generating      = ref(false)
+const generateError   = ref('')
+const subjectInput    = ref('')
+const showPromptModal = ref(false)
+const promptText      = ref('')
+const modifying       = ref(false)
+const modifyError     = ref('')
 
 function nextMonday() {
   const d = new Date()
@@ -333,6 +370,48 @@ async function saveEdit() {
   }
 }
 
+// ── Extraer materias del plan actual ─────────────────────────────
+const NON_SUBJECTS = new Set(['descanso', 'break', 'pausa', 'almuerzo', 'comida'])
+function extractSubjects(planData) {
+  const seen = new Set()
+  for (const day of planData?.days || []) {
+    for (const slot of day.slots || []) {
+      const s = (slot.subject || '').trim()
+      if (s && !NON_SUBJECTS.has(s.toLowerCase())) seen.add(s)
+    }
+  }
+  return [...seen]
+}
+
+function openGenerateForm() {
+  if (plan.value) {
+    form.subjects  = extractSubjects(plan.value)
+    form.priorities = []
+  }
+  showForm.value = true
+}
+
+// ── Modificar plan con IA ─────────────────────────────────────────
+async function modifyWithAI() {
+  if (!promptText.value.trim()) return
+  modifying.value = true
+  modifyError.value = ''
+  try {
+    const { data } = await api.post('/api/plan/modify', {
+      user_id:     authStore.userId,
+      plan_id:     planId.value,
+      instruction: promptText.value.trim(),
+    })
+    plan.value = data.plan
+    showPromptModal.value = false
+    promptText.value = ''
+  } catch (err) {
+    modifyError.value = err.response?.data?.detail || 'Error al modificar el plan. Intenta de nuevo.'
+  } finally {
+    modifying.value = false
+  }
+}
+
 // ── Cargar plan existente ─────────────────────────────────────────
 async function fetchPlan() {
   loading.value = true
@@ -403,6 +482,28 @@ h1 { font-size: 22px; font-weight: 600; }
   transition: all 0.15s;
 }
 .edit-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.ai-modify-btn {
+  font-size: 13px; padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(99,76,200,0.35);
+  background: rgba(99,76,200,0.08); color: #5b48c4;
+  cursor: pointer; font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s; white-space: nowrap;
+}
+.ai-modify-btn:hover { background: rgba(99,76,200,0.15); }
+
+.prompt-textarea {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+  background: var(--bg-page); color: var(--text-primary);
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  resize: vertical; outline: none; line-height: 1.55;
+  transition: border-color 0.15s;
+}
+.prompt-textarea:focus { border-color: #7c6dd8; }
 
 .save-btn {
   font-size: 13px; padding: 8px 16px;

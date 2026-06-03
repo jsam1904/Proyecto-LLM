@@ -117,6 +117,48 @@ class PlanUpdateRequest(BaseModel):
     plan_data: dict
 
 
+class PlanModifyRequest(BaseModel):
+    user_id: int
+    plan_id: int
+    instruction: str
+
+
+@router.post("/modify")
+async def modify_plan(req: PlanModifyRequest, db: AsyncSession = Depends(get_db)):
+    plan = await db.get(StudyPlan, req.plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+
+    prompt = f"""Tienes el siguiente plan de estudio semanal en JSON:
+{json.dumps(plan.plan_data, ensure_ascii=False, indent=2)}
+
+El estudiante quiere hacer este cambio: "{req.instruction}"
+
+Aplica el cambio solicitado al plan y devuelve el plan completo modificado en el mismo formato JSON exacto (sin markdown, solo JSON puro). Mantén todos los días y la estructura intacta."""
+
+    try:
+        response = await client.chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "Eres un planificador académico experto. Modifica el plan según la instrucción del estudiante y devuelve solo JSON válido con la misma estructura."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=1500,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+        modified_data = json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="La IA retornó un formato inválido")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error al modificar plan: {str(e)}")
+
+    plan.plan_data = modified_data
+    await db.commit()
+    await db.refresh(plan)
+    return {"plan_id": plan.id, "plan": plan.plan_data}
+
+
 @router.put("/{plan_id}")
 async def update_plan(plan_id: int, req: PlanUpdateRequest, db: AsyncSession = Depends(get_db)):
     plan = await db.get(StudyPlan, plan_id)
