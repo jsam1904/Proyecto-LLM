@@ -31,17 +31,32 @@ const router = createRouter({
 })
 
 // ── Auth guard ────────────────────────────────────────────────────
+function isTokenValid(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 > Date.now()
+  } catch {
+    return false
+  }
+}
+
 router.beforeEach((to, from) => {
   const token = localStorage.getItem('token')
+  const validToken = token && isTokenValid(token)
   const isPublic = to.meta.public === true
 
-  // Ruta protegida sin token → redirigir al login
-  if (!isPublic && !token) {
+  if (!validToken && token) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+  }
+
+  // Ruta protegida sin token válido → redirigir al login
+  if (!isPublic && !validToken) {
     return { path: '/login', replace: true }
   }
 
-  // Ya tiene sesión e intenta ir al login → redirigir al dashboard
-  if (to.path === '/login' && token) {
+  // Ya tiene sesión válida e intenta ir al login → redirigir al dashboard
+  if (to.path === '/login' && validToken) {
     return { path: '/dashboard', replace: true }
   }
 
