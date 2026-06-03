@@ -8,6 +8,7 @@ import AIAssistant from './views/AIAssistant.vue'
 import Progress    from './views/Progress.vue'
 import Login       from './views/Login.vue'
 import './assets/main.css'
+import 'katex/dist/katex.min.css'
 
 // ── Rutas ─────────────────────────────────────────────────────────
 const routes = [

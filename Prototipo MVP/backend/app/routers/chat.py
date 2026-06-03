@@ -19,7 +19,14 @@ Tu rol es ayudar a los estudiantes a:
 
 Responde siempre en español, de forma clara, concisa y alentadora.
 Cuando el estudiante mencione un examen próximo, sugiere proactivamente un plan de repaso.
-Máximo 3 párrafos por respuesta para mantener la conversación ágil."""
+Máximo 3 párrafos por respuesta para mantener la conversación ágil.
+
+FORMATO:
+- Usa Markdown para estructurar tus respuestas (negritas, listas, bloques de código).
+- Para expresiones matemáticas SIEMPRE usa notación LaTeX:
+  - Inline: $expresión$ (ej: $x^2 + y^2 = r^2$)
+  - Bloque centrado: $$expresión$$ (ej: $$\\int_0^1 \\frac{1}{\\sqrt{x}}\\,dx = 2$$)
+- Nunca uses Unicode matemático (∫, √, ∑, etc.) fuera de LaTeX."""
 
 
 class ChatRequest(BaseModel):

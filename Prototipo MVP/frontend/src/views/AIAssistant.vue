@@ -27,7 +27,12 @@
               </svg>
             </div>
             <div class="msg-bubble">
-              <p style="white-space: pre-wrap;">{{ msg.content }}</p>
+              <div
+                v-if="msg.role === 'assistant'"
+                class="msg-md"
+                v-html="renderMarkdown(msg.content)"
+              ></div>
+              <p v-else style="white-space: pre-wrap;">{{ msg.content }}</p>
               <span class="msg-time">{{ formatTime(msg.created_at) }}</span>
             </div>
           </div>
@@ -119,8 +124,17 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import MarkdownIt from 'markdown-it'
+import markdownItKatex from '@traptitech/markdown-it-katex'
 import api from '../services/api.js'
 import { useAuthStore } from '../stores/auth.js'
+
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
+md.use(markdownItKatex)
+
+function renderMarkdown(text) {
+  return md.render(text || '')
+}
 
 const authStore = useAuthStore()
 const messagesEl    = ref(null)
@@ -298,6 +312,30 @@ onMounted(fetchHistory)
   line-height: 1.55;
 }
 .msg-bubble p { margin: 0; }
+
+.msg-md { font-size: 13px; line-height: 1.6; }
+.msg-md p { margin: 0 0 6px; }
+.msg-md p:last-child { margin-bottom: 0; }
+.msg-md ul, .msg-md ol { margin: 4px 0 6px 18px; padding: 0; }
+.msg-md li { margin-bottom: 2px; }
+.msg-md strong { font-weight: 600; }
+.msg-md code {
+  background: rgba(0,0,0,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+.msg-md pre {
+  background: rgba(0,0,0,0.06);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.msg-md pre code { background: none; padding: 0; font-size: 12px; }
+.msg-md .katex-display { margin: 8px 0; overflow-x: auto; }
+.msg-md .katex { font-size: 1.05em; }
 
 .message.assistant .msg-bubble {
   background: var(--bg-hover);
