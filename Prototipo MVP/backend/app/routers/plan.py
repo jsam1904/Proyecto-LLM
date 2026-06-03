@@ -113,6 +113,21 @@ async def get_latest_plan(user_id: int, db: AsyncSession = Depends(get_db)):
     return {"plan_id": plan.id, "plan": plan.plan_data, "created_at": plan.created_at}
 
 
+class PlanUpdateRequest(BaseModel):
+    plan_data: dict
+
+
+@router.put("/{plan_id}")
+async def update_plan(plan_id: int, req: PlanUpdateRequest, db: AsyncSession = Depends(get_db)):
+    plan = await db.get(StudyPlan, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+    plan.plan_data = req.plan_data
+    await db.commit()
+    await db.refresh(plan)
+    return {"plan_id": plan.id, "plan": plan.plan_data}
+
+
 @router.get("/{user_id}/all")
 async def get_all_plans(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
