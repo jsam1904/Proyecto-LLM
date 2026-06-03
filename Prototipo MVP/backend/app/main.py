@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="StudyAI API",
+    title="StudyPilot AI API",
     description="Backend para la aplicación de planificación académica con IA",
     version="1.1.0",
     lifespan=lifespan,

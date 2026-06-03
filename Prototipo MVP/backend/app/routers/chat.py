@@ -10,7 +10,7 @@ from app.config import settings
 router = APIRouter()
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-SYSTEM_PROMPT = """Eres StudyAI, un asistente académico inteligente para estudiantes universitarios.
+SYSTEM_PROMPT = """Eres StudyPilot AI, un asistente académico inteligente para estudiantes universitarios.
 Tu rol es ayudar a los estudiantes a:
 1. Planificar y organizar su tiempo de estudio.
 2. Responder dudas académicas de sus materias.
