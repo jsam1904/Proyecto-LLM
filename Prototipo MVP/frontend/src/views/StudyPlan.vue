@@ -65,11 +65,19 @@
           <!-- Modo edición -->
           <template v-else>
             <div v-for="(slot, slotIdx) in day.slots" :key="slotIdx" class="slot editing">
-              <div class="edit-row-top">
+              <div class="edit-time-row">
                 <input
-                  v-model="slot.time"
-                  class="edit-input edit-time"
-                  placeholder="09:00 – 10:30"
+                  type="time"
+                  :value="getStart(slot.time)"
+                  @change="onTimeChange(slot, 'start', $event)"
+                  class="edit-input edit-time-pick"
+                />
+                <span class="time-sep">–</span>
+                <input
+                  type="time"
+                  :value="getEnd(slot.time)"
+                  @change="onTimeChange(slot, 'end', $event)"
+                  class="edit-input edit-time-pick"
                 />
                 <button class="del-slot-btn" @click="removeSlot(dayIdx, slotIdx)" title="Eliminar">✕</button>
               </div>
@@ -80,15 +88,7 @@
               />
               <div class="edit-row-bottom">
                 <input v-model="slot.tag" class="edit-input edit-tag" placeholder="Tag" />
-                <input
-                  v-model.number="slot.duration"
-                  type="number"
-                  min="15"
-                  max="240"
-                  step="15"
-                  class="edit-input edit-dur"
-                />
-                <span class="edit-unit">min</span>
+                <span class="edit-dur-display">{{ slot.duration }} min</span>
               </div>
             </div>
           </template>
@@ -267,6 +267,27 @@ function togglePriority(s) {
   const idx = form.priorities.indexOf(s)
   if (idx === -1) form.priorities.push(s)
   else form.priorities.splice(idx, 1)
+}
+
+// ── Helpers de tiempo ────────────────────────────────────────────
+function getStart(timeStr) {
+  return timeStr?.split(/\s*[–—\-]\s*/)[0]?.trim() || ''
+}
+function getEnd(timeStr) {
+  const parts = timeStr?.split(/\s*[–—\-]\s*/)
+  return parts?.length > 1 ? parts[1].trim() : ''
+}
+function onTimeChange(slot, type, event) {
+  const val   = event.target.value
+  const start = type === 'start' ? val : getStart(slot.time)
+  const end   = type === 'end'   ? val : getEnd(slot.time)
+  slot.time = start && end ? `${start} – ${end}` : (start || end || '')
+  if (start && end) {
+    const [sh, sm] = start.split(':').map(Number)
+    const [eh, em] = end.split(':').map(Number)
+    const diff = (eh * 60 + em) - (sh * 60 + sm)
+    if (diff > 0) slot.duration = diff
+  }
 }
 
 // ── Edición manual ────────────────────────────────────────────────
@@ -484,11 +505,14 @@ h1 { font-size: 22px; font-weight: 600; }
   background: var(--bg-page);
   display: flex; flex-direction: column; gap: 4px;
 }
-.edit-row-top {
-  display: flex; gap: 4px; align-items: center;
+.edit-time-row {
+  display: flex; gap: 3px; align-items: center;
 }
 .edit-row-bottom {
   display: flex; gap: 4px; align-items: center;
+}
+.time-sep {
+  font-size: 10px; color: var(--text-tertiary); flex-shrink: 0;
 }
 .edit-input {
   font-size: 11px; font-family: 'DM Sans', sans-serif;
@@ -500,11 +524,21 @@ h1 { font-size: 22px; font-weight: 600; }
   outline: none; transition: border-color 0.15s;
 }
 .edit-input:focus { border-color: var(--accent); }
-.edit-time    { flex: 1; min-width: 0; }
+.edit-time-pick {
+  flex: 1; min-width: 0;
+  padding: 3px 4px;
+  font-size: 10px;
+}
+.edit-time-pick::-webkit-calendar-picker-indicator {
+  width: 10px; opacity: 0.5; cursor: pointer;
+}
 .edit-subject { width: 100%; }
 .edit-tag     { flex: 1; min-width: 0; }
-.edit-dur     { width: 44px; text-align: center; }
-.edit-unit    { font-size: 10px; color: var(--text-tertiary); white-space: nowrap; }
+.edit-dur-display {
+  font-size: 10px; color: var(--text-tertiary);
+  white-space: nowrap; padding: 0 2px;
+  background: var(--bg-hover); border-radius: 4px; padding: 2px 5px;
+}
 
 .del-slot-btn {
   width: 18px; height: 18px; border-radius: 50%;
