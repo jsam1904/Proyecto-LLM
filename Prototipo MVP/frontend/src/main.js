@@ -11,8 +11,15 @@ import './assets/main.css'
 
 // ── Rutas ─────────────────────────────────────────────────────────
 const routes = [
+  {
+    path: '/',
+    redirect: () => {
+      const token = localStorage.getItem('token')
+      return token ? '/dashboard' : '/login'
+    },
+  },
   { path: '/login', component: Login, meta: { public: true } },
-  { path: '/',          component: Dashboard,   meta: { public: false } },
+  { path: '/dashboard', component: Dashboard,   meta: { public: false } },
   { path: '/plan',      component: StudyPlan,   meta: { public: false } },
   { path: '/assistant', component: AIAssistant, meta: { public: false } },
   { path: '/progress',  component: Progress,    meta: { public: false } },
@@ -35,7 +42,7 @@ router.beforeEach((to, from) => {
 
   // Ya tiene sesión e intenta ir al login → redirigir al dashboard
   if (to.path === '/login' && token) {
-    return { path: '/', replace: true }
+    return { path: '/dashboard', replace: true }
   }
 
   // En cualquier otro caso permitir la navegación

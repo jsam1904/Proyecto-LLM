@@ -104,7 +104,7 @@ async function submit() {
       await authStore.login(form.email, form.password)
     }
     // replace en lugar de push para no dejar el /login en el historial
-    await router.replace('/')
+    await router.replace('/dashboard')
   } catch (err) {
     // Mostrar el mensaje de error del backend si existe
     const detail = err.response?.data?.detail
