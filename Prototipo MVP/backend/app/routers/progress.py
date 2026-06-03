@@ -37,25 +37,33 @@ async def get_progress(user_id: int, db: AsyncSession = Depends(get_db)):
         if t.done:
             subject_tasks[subj]["done"] += 1
 
-    # ── Horas planeadas (últimos 4 planes) ──────────────────
+    # ── Horas planeadas (plan más reciente) ─────────────────
     plans_result = await db.execute(
         select(StudyPlan)
         .where(StudyPlan.user_id == user_id)
         .order_by(StudyPlan.created_at.desc())
-        .limit(4)
+        .limit(1)
     )
     plans = plans_result.scalars().all()
 
-    subject_hours: dict = {}
+    NON_STUDY = {"descanso", "break", "pausa", "almuerzo", "comida", "recreo"}
+
+    subject_hours: dict = {}   # lowercase key → hours
+    subject_display: dict = {} # lowercase key → display name (first seen, casing preserved)
     for plan in plans:
         for day in plan.plan_data.get("days", []):
             for slot in day.get("slots", []):
-                # Usar el tag como clave (más corto, ej: "Cálculo")
-                key = slot.get("tag") or slot.get("subject", "Otro")
+                raw = " ".join((slot.get("subject") or slot.get("tag") or "Otro").strip().split())
+                key = raw.lower()
+                if key in NON_STUDY:
+                    continue
+                if key not in subject_display:
+                    subject_display[key] = raw[0].upper() + raw[1:] if raw else "Otro"
                 hours = slot.get("duration", 0) / 60.0
                 subject_hours[key] = subject_hours.get(key, 0.0) + hours
 
     total_hours = sum(subject_hours.values())
+    subject_hours = {subject_display[k]: v for k, v in subject_hours.items()}
 
     # ── Próximo examen ───────────────────────────────────────
     now = datetime.now(timezone.utc)

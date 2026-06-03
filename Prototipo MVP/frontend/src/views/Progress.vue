@@ -28,7 +28,7 @@
           label="Horas planeadas"
           :value="stats.study_hours.total"
           unit="h"
-          trend="En últimos 4 planes"
+          trend="Plan de estudio actual"
         />
         <MetricCard
           v-if="stats.next_exam"
