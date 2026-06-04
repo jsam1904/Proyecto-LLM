@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     tag        VARCHAR(50),
     done       BOOLEAN DEFAULT FALSE,
     due_date   TIMESTAMPTZ,
+    priority   VARCHAR(20) DEFAULT 'media',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
