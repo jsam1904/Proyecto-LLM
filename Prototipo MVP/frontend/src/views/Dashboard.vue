@@ -52,6 +52,29 @@
         />
       </section>
 
+      <!-- AI suggestion banner -->
+      <div class="ai-banner">
+        <div class="ai-banner-icon">
+          <svg viewBox="0 0 16 16" fill="#0F6E56" width="16" height="16">
+            <path d="M8 2L10 7H15L11 10L13 15L8 12L3 15L5 10L1 7H6Z"/>
+          </svg>
+        </div>
+        <div class="ai-banner-text">
+          <strong>Sugerencia del Asistente IA</strong>
+          <p v-if="nextExam">
+            Tienes examen de {{ nextExam.subject }} en {{ nextExam.days_remaining }} día(s).
+            Te recomiendo hacer un repaso intensivo. ¡El Asistente IA puede ayudarte!
+          </p>
+          <p v-else-if="pendingTasks.length">
+            Tienes {{ pendingTasks.length }} tarea(s) pendiente(s). ¡El Asistente IA puede ayudarte a planificar!
+          </p>
+          <p v-else>
+            ¡Todo al día! Consulta al Asistente IA para generar tu plan de estudio semanal.
+          </p>
+        </div>
+        <router-link to="/assistant" class="ai-banner-btn">Consultar ↗</router-link>
+      </div>
+
       <div class="two-col">
         <!-- Tasks -->
         <div class="card">
@@ -83,29 +106,6 @@
           <h2 class="card-title">Actividad semanal</h2>
           <WeekHeatmap :data="weekData" />
         </div>
-      </div>
-
-      <!-- AI suggestion banner -->
-      <div class="ai-banner">
-        <div class="ai-banner-icon">
-          <svg viewBox="0 0 16 16" fill="#0F6E56" width="16" height="16">
-            <path d="M8 2L10 7H15L11 10L13 15L8 12L3 15L5 10L1 7H6Z"/>
-          </svg>
-        </div>
-        <div class="ai-banner-text">
-          <strong>Sugerencia del Asistente IA</strong>
-          <p v-if="nextExam">
-            Tienes examen de {{ nextExam.subject }} en {{ nextExam.days_remaining }} día(s).
-            Te recomiendo hacer un repaso intensivo. ¡El Asistente IA puede ayudarte!
-          </p>
-          <p v-else-if="pendingTasks.length">
-            Tienes {{ pendingTasks.length }} tarea(s) pendiente(s). ¡El Asistente IA puede ayudarte a planificar!
-          </p>
-          <p v-else>
-            ¡Todo al día! Consulta al Asistente IA para generar tu plan de estudio semanal.
-          </p>
-        </div>
-        <router-link to="/assistant" class="ai-banner-btn">Consultar ↗</router-link>
       </div>
     </template>
 
