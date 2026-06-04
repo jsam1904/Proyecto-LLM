@@ -1,5 +1,5 @@
 <template>
-  <div :class="['task-item', { done: task.done }]">
+  <div :class="['task-item', { done: task.done }, priorityClass]">
     <button
       class="checkbox"
       @click="$emit('toggle', task.id)"
@@ -15,6 +15,7 @@
       <span v-if="task.subject" class="task-subject">{{ task.subject }}</span>
     </div>
 
+    <span v-if="daysLabel" :class="['days-badge', daysUrgency]">{{ daysLabel }}</span>
     <span v-if="task.tag" :class="['task-tag', tagClass]">{{ task.tag }}</span>
 
     <button class="delete-btn" @click.stop="$emit('delete', task.id)" title="Eliminar">
@@ -29,8 +30,39 @@
 import { computed } from 'vue'
 const props = defineProps({ task: Object })
 defineEmits(['toggle', 'delete'])
+
 const tagMap   = { 'Cálculo': 'tag-math', 'Prog': 'tag-prog', 'BD': 'tag-db', 'IA': 'tag-ia' }
 const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
+
+const priorityClass = computed(() => {
+  if (props.task.done) return ''
+  const map = { alta: 'priority-alta', media: 'priority-media', baja: 'priority-baja' }
+  return map[props.task.priority] || ''
+})
+
+const daysRemaining = computed(() => {
+  if (!props.task.due_date || props.task.done) return null
+  const diff = new Date(props.task.due_date) - new Date()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+})
+
+const daysLabel = computed(() => {
+  const d = daysRemaining.value
+  if (d === null) return null
+  if (d < 0) return 'Vencida'
+  if (d === 0) return 'Hoy'
+  if (d === 1) return '1 día'
+  return `${d} días`
+})
+
+const daysUrgency = computed(() => {
+  const d = daysRemaining.value
+  if (d === null) return ''
+  if (d <= 0) return 'days-overdue'
+  if (d <= 2) return 'days-urgent'
+  if (d <= 5) return 'days-warning'
+  return 'days-ok'
+})
 </script>
 
 <style scoped>
@@ -41,10 +73,15 @@ const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   transition: background 0.12s;
 }
 .task-item:hover { background: var(--bg-hover); }
 .task-item.done { opacity: 0.55; }
+
+.priority-alta  { border-left-color: #e53e3e; }
+.priority-media { border-left-color: #dd6b20; }
+.priority-baja  { border-left-color: #3182ce; }
 
 .checkbox {
   width: 16px;
@@ -86,6 +123,18 @@ const tagClass = computed(() => tagMap[props.task.tag] || 'tag-prog')
   font-size: 10px;
   color: var(--text-tertiary);
 }
+
+.days-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.days-overdue { background: #fee2e2; color: #b91c1c; }
+.days-urgent  { background: #fee2e2; color: #c53030; }
+.days-warning { background: #fef3c7; color: #92400e; }
+.days-ok      { background: #d1fae5; color: #065f46; }
 
 .task-tag {
   font-size: 10px;

@@ -51,6 +51,22 @@
             </div>
           </div>
 
+          <!-- Prioridad -->
+          <div class="field">
+            <label>Prioridad</label>
+            <div class="tag-row">
+              <button
+                v-for="p in priorityOptions"
+                :key="p.value"
+                type="button"
+                :class="['priority-btn', `prio-${p.value}`, { active: form.priority === p.value }]"
+                @click="form.priority = p.value"
+              >
+                {{ p.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- Fecha límite -->
           <div class="field">
             <label>Fecha límite (opcional)</label>
@@ -85,6 +101,7 @@ const form = reactive({
   subject: '',
   tag: '',
   due_date: '',
+  priority: 'media',
 })
 
 const subjectSuggestions = [
@@ -100,6 +117,12 @@ const tagOptions = [
   { value: 'Otro',     label: 'Otro' },
 ]
 
+const priorityOptions = [
+  { value: 'alta',  label: 'Alta' },
+  { value: 'media', label: 'Media' },
+  { value: 'baja',  label: 'Baja' },
+]
+
 async function submit() {
   loading.value = true
   try {
@@ -109,6 +132,7 @@ async function submit() {
       subject: form.subject || null,
       tag:     form.tag     || null,
       due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+      priority: form.priority,
     }
     const { data } = await api.post('/api/tasks/', payload)
     emit('created', data)
@@ -232,6 +256,22 @@ async function submit() {
   color: var(--accent-dark);
   font-weight: 500;
 }
+
+.priority-btn {
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-secondary);
+}
+.priority-btn:hover { background: var(--bg-hover); }
+.prio-alta.active  { background: #fee2e2; border-color: #e53e3e; color: #b91c1c; font-weight: 500; }
+.prio-media.active { background: #fef3c7; border-color: #dd6b20; color: #92400e; font-weight: 500; }
+.prio-baja.active  { background: #dbeafe; border-color: #3182ce; color: #1e3a5f; font-weight: 500; }
 
 .modal-footer {
   display: flex;
