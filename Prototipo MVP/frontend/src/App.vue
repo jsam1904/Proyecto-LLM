@@ -29,6 +29,9 @@
         <router-link to="/progress" class="nav-item">
           <IconChart /> Progreso
         </router-link>
+        <router-link to="/repaso" class="nav-item">
+          <IconRepaso /> Repaso
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
@@ -65,6 +68,7 @@ import IconGrid     from './components/icons/IconGrid.vue'
 import IconCalendar from './components/icons/IconCalendar.vue'
 import IconChat     from './components/icons/IconChat.vue'
 import IconChart    from './components/icons/IconChart.vue'
+import IconRepaso   from './components/icons/IconRepaso.vue'
 
 const route     = useRoute()
 const router    = useRouter()

@@ -6,6 +6,7 @@ import Dashboard   from './views/Dashboard.vue'
 import StudyPlan   from './views/StudyPlan.vue'
 import AIAssistant from './views/AIAssistant.vue'
 import Progress    from './views/Progress.vue'
+import Repaso      from './views/Repaso.vue'
 import Login       from './views/Login.vue'
 import './assets/main.css'
 import 'katex/dist/katex.min.css'
@@ -24,6 +25,7 @@ const routes = [
   { path: '/plan',      component: StudyPlan,   meta: { public: false } },
   { path: '/assistant', component: AIAssistant, meta: { public: false } },
   { path: '/progress',  component: Progress,    meta: { public: false } },
+  { path: '/repaso',    component: Repaso,       meta: { public: false } },
 ]
 
 const router = createRouter({
