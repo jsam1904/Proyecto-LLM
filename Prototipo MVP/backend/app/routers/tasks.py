@@ -16,6 +16,7 @@ class TaskCreate(BaseModel):
     subject: Optional[str] = None
     tag: Optional[str] = None
     due_date: Optional[datetime] = None
+    priority: Optional[str] = "media"
 
 
 class TaskUpdate(BaseModel):
@@ -24,6 +25,7 @@ class TaskUpdate(BaseModel):
     subject: Optional[str] = None
     tag: Optional[str] = None
     due_date: Optional[datetime] = None
+    priority: Optional[str] = None
 
 
 @router.get("/{user_id}")

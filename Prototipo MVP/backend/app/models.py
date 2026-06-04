@@ -30,6 +30,7 @@ class Task(Base):
     tag        = Column(String(50))
     done       = Column(Boolean, default=False)
     due_date   = Column(DateTime(timezone=True), nullable=True)
+    priority   = Column(String(20), nullable=True, default="media")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="tasks")
