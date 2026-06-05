@@ -38,7 +38,7 @@
       <div class="empty-icon">📅</div>
       <h3>No tienes un plan generado aún</h3>
       <p>Haz clic en "Generar plan" para que la IA cree tu horario semanal personalizado.</p>
-      <button class="regen-btn" @click="showForm = true">Generar mi primer plan ↗</button>
+      <button class="regen-btn" @click="openGenerateForm">Generar mi primer plan ↗</button>
     </div>
 
     <!-- Plan generado -->
@@ -250,6 +250,7 @@ const showPromptModal = ref(false)
 const promptText      = ref('')
 const modifying       = ref(false)
 const modifyError     = ref('')
+const planContext     = ref(null)
 
 function nextMonday() {
   const d = new Date()
@@ -388,7 +389,30 @@ function openGenerateForm() {
     form.subjects  = extractSubjects(plan.value)
     form.priorities = []
   }
+  loadPlanContext()
   showForm.value = true
+}
+
+async function loadPlanContext() {
+  try {
+    const { data } = await api.get(`/api/plan/context/${authStore.userId}`)
+    planContext.value = data
+
+    const suggestedSubjects = data.suggested_subjects || []
+    const suggestedPriorities = data.suggested_priorities || []
+
+    for (const subject of suggestedSubjects) {
+      if (subject && !form.subjects.includes(subject)) {
+        form.subjects.push(subject)
+      }
+    }
+
+    form.priorities = suggestedPriorities.filter(subject =>
+      form.subjects.includes(subject)
+    )
+  } catch (err) {
+    console.error('Error cargando contexto del plan:', err)
+  }
 }
 
 // ── Modificar plan con IA ─────────────────────────────────────────
